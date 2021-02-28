@@ -1,0 +1,9 @@
+#### Vscode generated files ####
+.vscode 
+settings.json
+
+#### Python compiled bytecode ####
+__pycache__
+
+#### Current Song ####
+song.mp3
