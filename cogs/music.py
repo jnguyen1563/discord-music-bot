@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 from discord.utils import get
@@ -20,7 +21,9 @@ class Music(commands.Cog, name='Music'):
     def __init__(self, bot):
         self.bot = bot
         self.voice = None
-        self.queue = {}
+        self.queue = [] # Stored in (title,url) pairs
+
+########## Bot Join/Leave ##########
 
     @commands.command(aliases=['j'])
     async def join(self, ctx):
@@ -28,7 +31,6 @@ class Music(commands.Cog, name='Music'):
         Prompts the bot to join a voice channel
         It will join the channel of the user invoking the command
         '''
-        bot = self.bot
 
         # Attempt to get the channel that the message author is in
         try:
@@ -39,7 +41,7 @@ class Music(commands.Cog, name='Music'):
             return
 
         # Get the voice clients the bot is currently connected to
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # If already connected, move to channel where requested
         if self.voice and self.voice.is_connected():
@@ -57,7 +59,6 @@ class Music(commands.Cog, name='Music'):
         Prompts the bot to leave the voice channel
         Will only work if the user is in the same voice channel
         '''
-        bot = self.bot
 
         # Attempt to get the channel that the message author is in
         try:
@@ -68,7 +69,7 @@ class Music(commands.Cog, name='Music'):
             return
 
         # Get voice clients the bot is currently connected to
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # If connected, disconnect
         if self.voice and self.voice.is_connected():
@@ -79,27 +80,120 @@ class Music(commands.Cog, name='Music'):
             print('Not in a voice channel')
             await ctx.send('Not in a voice channel')
 
-    @commands.command(aliases=['p'])
-    async def play(self, ctx, url: str):
-        '''
-        Prompt the bot to play a song given a youtube url
-        Will save the audio of the video as 'song.mp3'
-        '''
-        song_exists = os.path.isfile('song.mp3')
-        bot = self.bot
+########## Song Playing/Queue ##########
 
-        # Delete old song files
+    async def add_to_queue(self, ctx, url: str):
+        '''
+        Helper function to add a song to the queue
+        '''
+        # Download video information and extract the title
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            print('Downloading video information')
+            info_dict = ydl.extract_info(url, download=False)
+            title = info_dict['title']
+
+        # Add the video to the queue with title:url pairs
+        self.queue.append((title, url))
+        print(f'{title} added to queue (Position {len(self.queue)})')
+        await ctx.send(f'{title} added to queue (Position {len(self.queue)})')
+
+
+    @commands.command(aliases=['q', 'show', 'queue'])
+    async def showqueue(self, ctx):
+        '''
+        Prompts the bot to show the current queue of songs
+        '''
+        # Checks to see if the queue is empty
+        if not self.queue:
+            print('Attempted to retrieve queue, but it is empty')
+            await ctx.send('The queue is currently empty')
+            return
+
+        # Creates embed for song list
+        queue_embed = discord.Embed(
+            title='Current song queue',
+            color=discord.Color.blurple()
+        )
+
+        # Creates the string containing queue information
+        embed_message = ""
+        for position, song in enumerate(self.queue):
+            embed_message += f'{position+1}: {song[0]}\n'
+
+        queue_embed.add_field(name='Song list', value=embed_message)
+        # Sends the song queue as an embed
+        await ctx.send(embed=queue_embed)
+
+    @commands.command(aliases=['remove'])
+    async def removequeue(self, ctx, index):
+        '''
+        Removes a song from the queue given its position
+        '''
+        index = int(index)
+        await ctx.send(f'Removed {self.queue[index-1][0]}')
+        del self.queue[index-1]
+
+
+    @commands.command(aliases=['clearq'])
+    async def clearqueue(self, ctx):
+        '''
+        Empties the song queue
+        '''
+        self.queue.clear()
+        await ctx.send('Queue has been cleared')
+
+    async def song_is_playing(self, ctx):
+        '''
+        Helper function that returns whether or not a song is currently playing or paused
+        '''
+        if self.voice and (self.voice.is_playing() or self.voice.is_paused()):
+            return True
+        else:
+            return False
+
+    async def remove_old_song(self, ctx):
+        '''
+        Removes the old song.mp3 from the filesystem if possible
+        '''
         try:
-            if song_exists:
+            if os.path.isfile('song.mp3'):
                 os.remove('song.mp3')
                 print('Removed old song')
         except PermissionError:
-            print('Attempted to delete song, but currently being played')
-            await ctx.send('Music is currently playing, stop the current song first')
+            print('Unable to remove old song')
             return
 
+    def play_next_song(self, ctx, old_song=None):
+        '''
+        Closes out the last played song and moves onto the next song in the queue
+        '''
+        if old_song:
+            asyncio.run_coroutine_threadsafe(ctx.send(f'Finished playing {old_song}'), self.bot.loop)
+
+        if self.queue:
+            next_song = self.queue.pop(0)
+            asyncio.run_coroutine_threadsafe(self.play(ctx, next_song[1]), self.bot.loop)
+        else:
+            print('Reached end of queue')
+            asyncio.run_coroutine_threadsafe(ctx.send('Reached end of queue'), self.bot.loop)
+
+
+    @commands.command(aliases=['p'])
+    async def play(self, ctx, url: str):
+        '''
+        Prompts the bot to play a song given a youtube url
+        Will save the audio of the video as 'song.mp3'
+        '''
         # Get voice clients bot is currently connected to
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
+
+        # If there's already a song a playing or paused, put the new song in queue
+        if await self.song_is_playing(ctx):
+            await self.add_to_queue(ctx, url)
+            return
+        else:
+            # Removes the previous song
+            await self.remove_old_song(ctx)
 
         # Confirm audio setup
         await ctx.send('Prepping the saxophone')
@@ -116,15 +210,18 @@ class Music(commands.Cog, name='Music'):
                 print(f'Renamed file: {file}\n')
                 os.rename(file, 'song.mp3')
 
-        # Play the audio
-        self.voice.play(discord.FFmpegPCMAudio('song.mp3'), after=lambda e: print(f'{filename} has finished playing'))
-        self.voice.source = discord.PCMVolumeTransformer(self.voice.source)
-        self.voice.source.volume = 0.12
-
         # Print the current file being played
         display_name = filename[:-16]
         await ctx.send(f'Playing: {display_name}')
         print('Playing\n')
+
+        # Play the audio
+        self.voice.play(discord.FFmpegPCMAudio('song.mp3'), after=lambda e: self.play_next_song(ctx, display_name))
+        self.voice.source = discord.PCMVolumeTransformer(self.voice.source)
+        self.voice.source.volume = 0.12
+
+
+########## Media controls ##########
 
     @commands.command(aliases=['pa'])
     async def pause(self, ctx):
@@ -132,8 +229,7 @@ class Music(commands.Cog, name='Music'):
         Prompts the bot to pause the current song
         Will return a message if there is no song loaded
         '''
-        bot = self.bot
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # Check that music is playing and pause it
         if self.voice and self.voice.is_playing():
@@ -150,8 +246,7 @@ class Music(commands.Cog, name='Music'):
         Prompts the bot to resume the currently paused song
         Returns a message if the current song is already running or no song is loaded
         '''
-        bot = self.bot
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # Check that music is paused and resume
         if self.voice and self.voice.is_paused():
@@ -165,19 +260,18 @@ class Music(commands.Cog, name='Music'):
             print('Tried to resume, but no song is playing')
             await ctx.send('No song to resume')
 
-    @commands.command(aliases=['s'])
+    @commands.command(aliases=['s', 'skip'])
     async def stop(self, ctx):
         '''
         Prompts the bot to stop and remove the current song
         '''
-        bot = self.bot
-        self.voice = get(bot.voice_clients, guild=ctx.guild)
+        self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # Check if music is playing and stop it
-        if self.voice and (self.voice.is_playing() or self.voice.is_paused()):
-            print('Music stopped')
+        if self.song_is_playing(ctx):
+            print('Song skipped')
             self.voice.stop()
-            await ctx.send('Music stopped')
+            await ctx.send('Song skipped')
         else:
             print('Tried to stop, but no music playing')
             await ctx.send('No music playing')

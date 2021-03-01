@@ -11,7 +11,7 @@ async def on_ready():
     await bot.change_presence(status=discord.Status.online, activity=activity)
     print('Ready to play music')
 
-load_order = ['music']
+load_order = ['loading', 'music']
 for extension in load_order:
     try:
         bot.load_extension(f'cogs.{extension}')
