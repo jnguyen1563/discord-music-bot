@@ -21,6 +21,7 @@ class Music(commands.Cog, name='Music'):
     def __init__(self, bot):
         self.bot = bot
         self.voice = None
+        self.loop = False
         self.queue = [] # Stored in (title,url) pairs
 
 ########## Bot Join/Leave ##########
@@ -92,7 +93,7 @@ class Music(commands.Cog, name='Music'):
             info_dict = ydl.extract_info(url, download=False)
             title = info_dict['title']
 
-        # Add the video to the queue with title:url pairs
+        # Add the video to the queue with (title, url) pairs
         self.queue.append((title, url))
         print(f'{title} added to queue (Position {len(self.queue)})')
         await ctx.send(f'{title} added to queue (Position {len(self.queue)})')
@@ -133,8 +134,7 @@ class Music(commands.Cog, name='Music'):
         await ctx.send(f'Removed {self.queue[index-1][0]}')
         del self.queue[index-1]
 
-
-    @commands.command(aliases=['clearq'])
+    @commands.command(aliases=['clear'])
     async def clearqueue(self, ctx):
         '''
         Empties the song queue
@@ -167,15 +167,23 @@ class Music(commands.Cog, name='Music'):
         '''
         Closes out the last played song and moves onto the next song in the queue
         '''
-        if old_song:
-            asyncio.run_coroutine_threadsafe(ctx.send(f'Finished playing {old_song}'), self.bot.loop)
-
-        if self.queue:
-            next_song = self.queue.pop(0)
-            asyncio.run_coroutine_threadsafe(self.play(ctx, next_song[1]), self.bot.loop)
+        if self.loop:
+            self.voice.play(discord.FFmpegPCMAudio('song.mp3'), after=lambda e: self.play_next_song(ctx, old_song))
+            self.voice.source = discord.PCMVolumeTransformer(self.voice.source)
+            self.voice.source.volume = 0.12
         else:
-            print('Reached end of queue')
-            asyncio.run_coroutine_threadsafe(ctx.send('Reached end of queue'), self.bot.loop)
+            # If moving on from a completed song, confirm finish
+            if old_song:
+                asyncio.run_coroutine_threadsafe(ctx.send(f'Finished playing {old_song}'), self.bot.loop)
+
+            if self.queue:
+                # Remove the next song on the list from the queue and play it
+                next_song = self.queue.pop(0)
+                asyncio.run_coroutine_threadsafe(self.play(ctx, next_song[1]), self.bot.loop)
+            else:
+                # Display a message once the end of the queue has been reached
+                print('Reached end of queue')
+                asyncio.run_coroutine_threadsafe(ctx.send('Reached end of queue'), self.bot.loop)
 
 
     @commands.command(aliases=['p'])
@@ -201,17 +209,16 @@ class Music(commands.Cog, name='Music'):
         # Download audio from youtube video with previously set ydl options
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             print('Downloading audio')
-            ydl.download([url])
+            song_info = ydl.extract_info(url, download=True)
         
         # Search for downloaded audio file and rename it
         for file in os.listdir('./'):
             if file.endswith('.mp3'):
-                filename = file
                 print(f'Renamed file: {file}\n')
                 os.rename(file, 'song.mp3')
 
         # Print the current file being played
-        display_name = filename[:-16]
+        display_name = song_info['title']
         await ctx.send(f'Playing: {display_name}')
         print('Playing\n')
 
@@ -268,13 +275,25 @@ class Music(commands.Cog, name='Music'):
         self.voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         # Check if music is playing and stop it
-        if self.song_is_playing(ctx):
+        if await self.song_is_playing(ctx):
             print('Song skipped')
             self.voice.stop()
             await ctx.send('Song skipped')
         else:
             print('Tried to stop, but no music playing')
             await ctx.send('No music playing')
+
+    @commands.command()
+    async def loop(self, ctx):
+        '''
+        Toggles loop mode, which causes the bot to loop the currently playing song
+        '''
+        if self.loop:
+            await ctx.send('No longer looping')
+            self.loop = False
+        else:
+            await ctx.send('Looping current song')
+            self.loop = True
 
 def setup(bot):
     bot.add_cog(Music(bot))
