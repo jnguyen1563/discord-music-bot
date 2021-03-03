@@ -11,29 +11,7 @@ async def on_ready():
     await bot.change_presence(status=discord.Status.online, activity=activity)
     print('Ready to play music')
 
-@bot.command(aliases=['h'])
-async def help(ctx):
-    # Initialize the embed
-    help_embed = discord.Embed(
-        title='List of Commands',
-        color=discord.Color.blurple()
-    )
-
-    help_embed.add_field(name='Voice Channel', value="""join:          Bot joins voice channel user is in
-                                                        leave:         Bot leaves voice channel user is in""", inline=False)
-    help_embed.add_field(name='Media Controls', value="""play (url):    Play song, adds to queue if song is already playing
-                                                         pause:         Pauses the current song
-                                                         resume:        Resumes the current song if paused
-                                                         stop:          Ends the current song
-                                                         loop:          Sets the bot to loop the current song""", inline=False)
-    help_embed.add_field(name='Queue Controls', value="""queue:         Shows the current list of songs in the queue
-                                                         clearq:        Completely removes all songs from queue
-                                                         removeq (pos): Removes song from queue at given position""", inline=False)
-
-    await ctx.send(embed=help_embed)
-
-
-load_order = ['loading', 'music']
+load_order = ['loading', 'help', 'music']
 for extension in load_order:
     try:
         bot.load_extension(f'cogs.{extension}')
