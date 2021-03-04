@@ -36,18 +36,18 @@ class Help(commands.Cog, name='Help'):
         # Command descriptions
         help_embed.add_field(name='Description', value=(
             """ ----------------------------------------
-            : Bot joins voice channel user is in
-            : Bot leaves voice channel user is in
+            Bot joins voice channel user is in
+            Bot leaves voice channel user is in
             ----------------------------------------
-            : Play song, adds to queue if song is already playing
-            : Pauses the current song
-            : Resumes current song if paused
-            : Ends the current song
-            : Sets the bot to loop the current song
+            Play song, adds to queue if song is already playing
+            Pauses the current song
+            Resumes current song if paused
+            Ends the current song
+            Sets the bot to loop the current song
             ----------------------------------------
-            : Shows the current list of songs in the queue
-            : Completely removes all songs from the queue
-            : Removes song from the queue at a given position"""), inline=True)
+            Shows the current list of songs in the queue
+            Completely removes all songs from the queue
+            Removes song from the queue at a given position"""), inline=True)
 
         await ctx.send(embed=help_embed)
 
