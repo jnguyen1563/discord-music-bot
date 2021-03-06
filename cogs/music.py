@@ -42,7 +42,7 @@ class Music(commands.Cog, name='Music'):
             channel = ctx.message.author.voice.channel
         except AttributeError:
             print('No user in voice channel')
-            await ctx.send('*No user in voice channel*')
+            await ctx.send('No user in voice channel')
             return
 
         # Get the voice clients the bot is currently connected to
@@ -56,7 +56,7 @@ class Music(commands.Cog, name='Music'):
             self.voice = await channel.connect()
             print(f'Bot has connected to {channel}')
 
-        await ctx.send(f'*Joined* ***{channel}***')
+        await ctx.send(f'Joined **{channel}**')
 
     @commands.command(aliases=['l'])
     async def leave(self, ctx):
@@ -70,7 +70,7 @@ class Music(commands.Cog, name='Music'):
             channel = ctx.message.author.voice.channel
         except AttributeError:
             print('No user in voice channel')
-            await ctx.send('*No user in voice channel*')
+            await ctx.send('No user in voice channel')
             return
 
         # Get voice clients the bot is currently connected to
@@ -80,10 +80,10 @@ class Music(commands.Cog, name='Music'):
         if self.voice and self.voice.is_connected():
             await self.voice.disconnect()
             print(f'Bot has left {channel}')
-            await ctx.send(f'*Left* ***{channel}***')
+            await ctx.send(f'Left **{channel}**')
         else:
             print('Not in a voice channel')
-            await ctx.send('*Not in a voice channel*')
+            await ctx.send('Not in a voice channel')
 
 ########## Song Playing/Queue ##########
 
@@ -100,7 +100,7 @@ class Music(commands.Cog, name='Music'):
         # Add the video to the queue with (title, url) pairs
         self.queue.append((title, url))
         print(f'{title} added to queue (Position {len(self.queue)})')
-        await ctx.send(f'***{title}*** *added to queue* **(Position {len(self.queue)}**)')
+        await ctx.send(f'***{title}*** added to queue **(Position {len(self.queue)}**)')
 
 
     @commands.command(aliases=['q', 'show', 'queue'])
@@ -111,7 +111,7 @@ class Music(commands.Cog, name='Music'):
         # Checks to see if the queue is empty
         if not self.queue:
             print('Attempted to retrieve queue, but it is empty')
-            await ctx.send('*The queue is currently empty*')
+            await ctx.send('The queue is currently empty')
             return
 
         # Creates embed for song list
@@ -142,7 +142,7 @@ class Music(commands.Cog, name='Music'):
         Removes a song from the queue given its position
         '''
         index = int(index)
-        await ctx.send(f'*Removed* ***{self.queue[index-1][0]}***')
+        await ctx.send(f'Removed ***{self.queue[index-1][0]}***')
         del self.queue[index-1]
 
     @commands.command(aliases=['clear'])
@@ -151,7 +151,7 @@ class Music(commands.Cog, name='Music'):
         Empties the song queue
         '''
         self.queue.clear()
-        await ctx.send('*Queue has been cleared*')
+        await ctx.send('Queue has been cleared')
 
     @commands.command()
     async def shuffle(self, ctx):
@@ -159,7 +159,7 @@ class Music(commands.Cog, name='Music'):
         Shuffles the entire queue
         '''
         random.shuffle(self.queue)
-        await ctx.send('*Shuffled the queue*')
+        await ctx.send('Shuffled the queue')
 
     async def song_is_playing(self, ctx):
         '''
@@ -223,7 +223,7 @@ class Music(commands.Cog, name='Music'):
             await self.remove_old_song(ctx)
 
         # Confirm audio setup
-        await ctx.send('***Prepping the sax***')
+        await ctx.send('**Prepping the sax**')
 
         # Download audio from youtube video with previously set ydl options
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -238,7 +238,7 @@ class Music(commands.Cog, name='Music'):
 
         # Print the current file being played
         display_name = song_info['title']
-        await ctx.send(f'*Playing:* ***{display_name}***')
+        await ctx.send(f'Playing: ***{display_name}***')
         print('Playing\n')
 
         # Play the audio
@@ -256,7 +256,7 @@ class Music(commands.Cog, name='Music'):
 
         with youtube_dl.YoutubeDL({'quiet': 'True', 'ignoreerrors': 'True'}) as ydl:
             print('Downloading playlist info')
-            await ctx.send('*Downloading playlist info*')
+            await ctx.send('Downloading playlist info')
             playlist_info = ydl.extract_info(url, download=False)
 
         playlist_queue = []    
@@ -337,10 +337,10 @@ class Music(commands.Cog, name='Music'):
         if self.voice and self.voice.is_playing():
             print('Music paused')
             self.voice.pause()
-            await ctx.send('*Music paused*')
+            await ctx.send('Music paused')
         else:
             print('Tried to pause, but no music playing')
-            await ctx.send('*No music playing*')
+            await ctx.send('No music playing')
 
     @commands.command(aliases=['r'])
     async def resume(self, ctx):
@@ -354,13 +354,13 @@ class Music(commands.Cog, name='Music'):
         if self.voice and self.voice.is_paused():
             print('Music resumed')
             self.voice.resume()
-            await ctx.send('*Music resumed*')
+            await ctx.send('Music resumed')
         elif self.voice and not self.voice.is_paused():
             print('Tried to resume, but music is already playing')
-            await ctx.send('*Current song is already playing*')
+            await ctx.send('Current song is already playing')
         else:
             print('Tried to resume, but no song is playing')
-            await ctx.send('*No song to resume*')
+            await ctx.send('No song to resume')
 
     @commands.command(aliases=['s', 'skip'])
     async def stop(self, ctx):
@@ -373,10 +373,10 @@ class Music(commands.Cog, name='Music'):
         if await self.song_is_playing(ctx):
             print('Song skipped')
             self.voice.stop()
-            await ctx.send('*Song skipped*')
+            await ctx.send('Song skipped')
         else:
             print('Tried to stop, but no music playing')
-            await ctx.send('*No music playing*')
+            await ctx.send('No music playing')
 
     @commands.command()
     async def loop(self, ctx):
@@ -384,10 +384,10 @@ class Music(commands.Cog, name='Music'):
         Toggles loop mode, which causes the bot to loop the currently playing song
         '''
         if self.loop:
-            await ctx.send('*No longer looping*')
+            await ctx.send('No longer looping')
             self.loop = False
         else:
-            await ctx.send('*Looping current song*')
+            await ctx.send('Looping current song')
             self.loop = True
 
 def setup(bot):
