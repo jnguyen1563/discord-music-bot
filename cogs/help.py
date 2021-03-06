@@ -31,7 +31,13 @@ class Help(commands.Cog, name='Help'):
             **Queue Controls**
             queue
             clearq
-            removeq <#>"""), inline=True)
+            removeq <#>
+            shuffle
+            **Playlist**
+            playlist <url>
+            **Search**
+            search <words>
+            playsearch <#>"""), inline=True)
         
         # Command descriptions
         help_embed.add_field(name='Description', value=(
@@ -47,9 +53,23 @@ class Help(commands.Cog, name='Help'):
             ----------------------------------------
             Shows the current list of songs in the queue
             Completely removes all songs from the queue
-            Removes song from the queue at a given position"""), inline=True)
+            Removes song from the queue at a given position
+            Shuffles the entire queue
+            ----------------------------------------
+            Adds playlist entries into queue
+            ----------------------------------------
+            Searches for the top 3 search results on Youtube
+            Plays the selected song from search results"""), inline=True)
 
         await ctx.send(embed=help_embed)
+
+    @commands.command()
+    async def banger(self, ctx, days=0):
+        await ctx.send(f'Days without a banger: **{days}**')
+
+    @commands.command()
+    async def sax(self, ctx):
+        await ctx.send("Big Band don't \"wadataaah\" to the \"shamaca\", 'cause that's a \"comacomalipachah\", dig?")
 
 def setup(bot):
     bot.add_cog(Help(bot))
