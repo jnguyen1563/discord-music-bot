@@ -7,8 +7,8 @@ bot = commands.Bot(command_prefix='>', help_command=None)
 
 @bot.event
 async def on_ready():
-    activity = discord.Activity(name='to the good stuff', type=discord.ActivityType.listening)
-    await bot.change_presence(status=discord.Status.online, activity=activity)
+    activity = discord.Game(name='nothing at the moment')
+    await bot.change_presence(status=discord.Status.idle, activity=activity)
     print('Ready to play music')
 
 load_order = ['loading', 'help', 'music']

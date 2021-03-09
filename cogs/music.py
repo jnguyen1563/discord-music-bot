@@ -202,6 +202,8 @@ class Music(commands.Cog, name='Music'):
             else:
                 # Display a message once the end of the queue has been reached
                 print('Reached end of queue')
+                activity = discord.Game(name='nothing at the moment')
+                asyncio.run_coroutine_threadsafe(self.bot.change_presence(status=discord.Status.idle, activity=activity), self.bot.loop)
                 asyncio.run_coroutine_threadsafe(ctx.send('Reached end of queue'), self.bot.loop)
 
 
@@ -239,6 +241,8 @@ class Music(commands.Cog, name='Music'):
         # Print the current file being played
         display_name = song_info['title']
         await ctx.send(f'Playing: ***{display_name}***')
+        activity = discord.Game(name=display_name)
+        await self.bot.change_presence(status=discord.Status.online, activity=activity)
         print('Playing\n')
 
         # Play the audio
