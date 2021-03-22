@@ -1,8 +1,14 @@
 import discord
 from discord.ext import commands
 
+import json
+
+# load in config file
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
 # bot info
-TOKEN = 'NzUwMjI5MTU5MjQ2MTY4MTM1.X03fWg.LAHvnXM1xODajszAhAnU9gk6xB0'
+TOKEN = config['token']
 bot = commands.Bot(command_prefix='>', help_command=None)
 
 @bot.event
